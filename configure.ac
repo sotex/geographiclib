@@ -1,7 +1,7 @@
 dnl
 dnl Copyright (C) 2009, Francesco P. Lovergine <frankie@debian.org>
 
-AC_INIT([GeographicLib],[1.44],[charles@karney.com])
+AC_INIT([GeographicLib],[1.45],[charles@karney.com])
 AC_CANONICAL_SYSTEM
 AC_PREREQ(2.61)
 AC_CONFIG_SRCDIR(src/Geodesic.cpp)
@@ -9,7 +9,7 @@ AC_CONFIG_MACRO_DIR(m4)
 AM_INIT_AUTOMAKE
 
 GEOGRAPHICLIB_VERSION_MAJOR=1
-GEOGRAPHICLIB_VERSION_MINOR=44
+GEOGRAPHICLIB_VERSION_MINOR=45
 GEOGRAPHICLIB_VERSION_PATCH=0
 AC_DEFINE_UNQUOTED([GEOGRAPHICLIB_VERSION_MAJOR],
         [$GEOGRAPHICLIB_VERSION_MAJOR],[major version number])
@@ -35,7 +35,7 @@ dnl Interfaces changed/added/removed:   CURRENT++ REVISION=0
 dnl Interfaces added:                   AGE++
 dnl Interfaces removed:                 AGE=0
 LT_CURRENT=16
-LT_REVISION=0
+LT_REVISION=1
 LT_AGE=2
 AC_SUBST(LT_CURRENT)
 AC_SUBST(LT_REVISION)
@@ -62,7 +62,8 @@ AX_CHECK_COMPILE_FLAG([-std=c++11],
                 [CXXFLAGS="$CXXFLAGS -std=c++0x"])])
 # Check for C++11 math functions
 AC_TRY_COMPILE([#include <cmath>],
-        [return int(std::hypot(3.0, 4.0) + std::expm1(0.5) +
+        [int q;
+         return int(std::hypot(3.0, 4.0) + std::expm1(0.5) +
                     std::log1p(2.0) + std::asinh(10.0) +
                     std::atanh(0.8) + std::cbrt(8.0) +
                     std::fma(1.0, 2.0, 3.0) + std::remquo(100.0, 90.0, &q) +
@@ -91,6 +92,7 @@ src/Makefile
 include/Makefile
 tools/Makefile
 doc/Makefile
+js/Makefile
 man/Makefile
 matlab/Makefile
 python/Makefile

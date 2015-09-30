@@ -99,6 +99,7 @@ class Geodesic(object):
   LONGITUDE     = GeodesicCapability.LONGITUDE
   AZIMUTH       = GeodesicCapability.AZIMUTH
   DISTANCE      = GeodesicCapability.DISTANCE
+  STANDARD      = GeodesicCapability.STANDARD
   DISTANCE_IN   = GeodesicCapability.DISTANCE_IN
   REDUCEDLENGTH = GeodesicCapability.REDUCEDLENGTH
   GEODESICSCALE = GeodesicCapability.GEODESICSCALE
@@ -267,7 +268,7 @@ class Geodesic(object):
     """
 
     self._a = float(a)
-    self._f = float(f) if f <= 1 else 1.0/f
+    self._f = float(f)
     self._f1 = 1 - self._f
     self._e2 = self._f * (2 - self._f)
     self._ep2 = self._e2 / Math.sq(self._f1) # e2 / (1 - e2)
@@ -645,11 +646,11 @@ class Geodesic(object):
     # Math.norm(somg2, comg2); -- don't need to normalize!
 
     # sig12 = sig2 - sig1, limit to [0, pi]
-    sig12 = math.atan2(max(csig1 * ssig2 - ssig1 * csig2, 0.0),
+    sig12 = math.atan2(max(0.0, csig1 * ssig2 - ssig1 * csig2),
                        csig1 * csig2 + ssig1 * ssig2)
 
     # omg12 = omg2 - omg1, limit to [0, pi]
-    omg12 = math.atan2(max(comg1 * somg2 - somg1 * comg2, 0.0),
+    omg12 = math.atan2(max(0.0, comg1 * somg2 - somg1 * comg2),
                        comg1 * comg2 + somg1 * somg2)
     # real B312, h0
     k2 = Math.sq(calp0) * self._ep2
@@ -693,7 +694,8 @@ class Geodesic(object):
     lat1 = Math.AngRound(Math.LatFix(lat1))
     lat2 = Math.AngRound(Math.LatFix(lat2))
     # Swap points so that point with higher (abs) latitude is point 1
-    swapp = 1 if abs(lat1) >= abs(lat2) else -1
+    # If one latitude is a nan, then it becomes lat1.
+    swapp = -1 if abs(lat1) < abs(lat2) else 1
     if swapp < 0:
       lonsign *= -1
       lat2, lat1 = lat1, lat2
@@ -765,7 +767,7 @@ class Geodesic(object):
       ssig2 = sbet2; csig2 = calp2 * cbet2
 
       # sig12 = sig2 - sig1
-      sig12 = math.atan2(max(csig1 * ssig2 - ssig1 * csig2, 0.0),
+      sig12 = math.atan2(max(0.0, csig1 * ssig2 - ssig1 * csig2),
                          csig1 * csig2 + ssig1 * ssig2)
 
       s12x, m12x, dummy, M12, M21 = self.Lengths(
@@ -981,27 +983,27 @@ class Geodesic(object):
 
   def CheckPosition(lat, lon):
     """Check that lat and lon are legal and return normalized lon"""
-    if not (abs(lat) <= 90):
+    if abs(lat) > 90:
       raise ValueError("latitude " + str(lat) + " not in [-90, 90]")
-    if not Math.isfinite(lon):
-      raise ValueError("lonitude " + str(lon) + " not a finite number")
+    # if not Math.isfinite(lon):
+    #   raise ValueError("longitude " + str(lon) + " not a finite number")
     return Math.AngNormalize(lon)
   CheckPosition = staticmethod(CheckPosition)
 
   def CheckAzimuth(azi):
     """Check that azi is legal and return normalized value"""
-    if not Math.isfinite(azi):
-      raise ValueError("azimuth " + str(azi) + " not a finite number")
+    # if not Math.isfinite(azi):
+    #   raise ValueError("azimuth " + str(azi) + " not a finite number")
     return Math.AngNormalize(azi)
   CheckAzimuth = staticmethod(CheckAzimuth)
 
   def CheckDistance(s):
     """Check that s is a legal distance"""
-    if not Math.isfinite(s):
-      raise ValueError("distance " + str(s) + " not a finite number")
+    # if not Math.isfinite(s):
+    #   raise ValueError("distance " + str(s) + " not a finite number")
   CheckDistance = staticmethod(CheckDistance)
 
-  def Inverse(self, lat1, lon1, lat2, lon2, outmask = DISTANCE | AZIMUTH):
+  def Inverse(self, lat1, lon1, lat2, lon2, outmask = STANDARD):
     """Solve the inverse geodesic problem.  Compute geodesic between (lat1,
     lon1) and (lat2, lon2).  Return a dictionary with (some) of the
     following entries:
@@ -1025,6 +1027,7 @@ class Geodesic(object):
 
       Geodesic.AZIMUTH
       Geodesic.DISTANCE
+      Geodesic.STANDARD (all of the above)
       Geodesic.REDUCEDLENGTH
       Geodesic.GEODESICSCALE
       Geodesic.AREA
@@ -1035,7 +1038,7 @@ class Geodesic(object):
     lon1 indicates whether the geodesic is east going or west going.
     Otherwise lon1 and lon2 are both reduced to the range [-180,180).
 
-    The default value of outmask is DISTANCE | AZIMUTH.
+    The default value of outmask is STANDARD.
 
     """
 
@@ -1070,8 +1073,7 @@ class Geodesic(object):
       outmask | (Geodesic.EMPTY if arcmode else Geodesic.DISTANCE_IN))
     return line.GenPosition(arcmode, s12_a12, outmask)
 
-  def Direct(self, lat1, lon1, azi1, s12,
-             outmask = LATITUDE | LONGITUDE | AZIMUTH):
+  def Direct(self, lat1, lon1, azi1, s12, outmask = STANDARD):
     """Solve the direct geodesic problem.  Compute geodesic starting at
     (lat1, lon1) with azimuth azi1 and length s12.  Return a dictionary
     with (some) of the following entries:
@@ -1096,6 +1098,7 @@ class Geodesic(object):
       Geodesic.LATITUDE
       Geodesic.LONGITUDE
       Geodesic.AZIMUTH
+      Geodesic.STANDARD (all of the above)
       Geodesic.REDUCEDLENGTH
       Geodesic.GEODESICSCALE
       Geodesic.AREA
@@ -1107,7 +1110,7 @@ class Geodesic(object):
     how many times and in what sense the geodesic encircles the
     ellipsoid.
 
-    The default value of outmask is LATITUDE | LONGITUDE | AZIMUTH.
+    The default value of outmask is STANDARD.
 
     """
 
@@ -1132,8 +1135,7 @@ class Geodesic(object):
     if outmask & Geodesic.AREA: result['S12'] = S12
     return result
 
-  def ArcDirect(self, lat1, lon1, azi1, a12,
-                outmask = LATITUDE | LONGITUDE | AZIMUTH | DISTANCE):
+  def ArcDirect(self, lat1, lon1, azi1, a12, outmask = STANDARD):
     """Solve the direct geodesic problem.  Compute geodesic starting at
     (lat1, lon1) with azimuth azi1 and spherical arc length a12.  Return
     a dictionary with (some) of the following entries:
@@ -1161,14 +1163,14 @@ class Geodesic(object):
       Geodesic.LONGITUDE
       Geodesic.AZIMUTH
       Geodesic.DISTANCE
+      Geodesic.STANDARD (all of the above)
       Geodesic.REDUCEDLENGTH
       Geodesic.GEODESICSCALE
       Geodesic.AREA
       Geodesic.ALL (all of the above)
       Geodesic.LONG_UNROLL
 
-    The default value of outmask is LATITUDE | LONGITUDE | AZIMUTH |
-    DISTANCE.
+    The default value of outmask is STANDARD.
 
     """
 
@@ -1203,6 +1205,7 @@ class Geodesic(object):
       Geodesic.LONGITUDE
       Geodesic.AZIMUTH
       Geodesic.DISTANCE
+      Geodesic.STANDARD (all of the above)
       Geodesic.REDUCEDLENGTH
       Geodesic.GEODESICSCALE
       Geodesic.AREA

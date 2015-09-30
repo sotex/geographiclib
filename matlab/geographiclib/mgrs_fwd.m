@@ -31,8 +31,6 @@ function mgrs = mgrs_fwd(x, y, zone, isnorth, prec)
 %   See also MGRS_INV, UTMUPS_FWD.
 
 % Copyright (c) Charles Karney (2015) <charles@karney.com>.
-%
-% This file was distributed with GeographicLib 1.42.
 
   narginchk(4, 5)
   if nargin < 5, prec = 5; end
@@ -165,8 +163,8 @@ function xy = formatnum(x, xh, y, yh, prec)
   x = x - xh * 1e11; y = y - yh * 1e11;
   d = 10 ^ (11 - prec);
   x = floor(x / d); y = floor(y / d);
-  xy = [num2str(x, ['%0', int2str(prec), 'd']), ...
-        num2str(y, ['%0', int2str(prec), 'd'])];
+  xy = [num2str(x, ['%0', int2str(prec), '.0f']), ...
+        num2str(y, ['%0', int2str(prec), '.0f'])];
 end
 
 function band = LatitudeBand(lat)

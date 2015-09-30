@@ -44,8 +44,6 @@ function [s12, azi1, azi2, S12, m12, M12, M21, a12] = geoddistance ...
 
 % Copyright (c) Charles Karney (2012-2015) <charles@karney.com>.
 %
-% This file was distributed with GeographicLib 1.44.
-%
 % This is a straightforward transcription of the C++ implementation in
 % GeographicLib and the C++ source should be consulted for additional
 % documentation.  This is a vector implementation and the results returned
@@ -105,7 +103,7 @@ function [s12, azi1, azi2, S12, m12, M12, M21, a12] = geoddistance ...
   lon12 = lonsign .* lon12;
   lat1 = AngRound(LatFix(lat1(:)));
   lat2 = AngRound(LatFix(lat2(:)));
-  swapp = 2 * (abs(lat1) >= abs(lat2)) - 1;
+  swapp = 2 * ~(abs(lat1) < abs(lat2)) - 1;
   lonsign(swapp < 0) = - lonsign(swapp < 0);
   [lat1(swapp < 0), lat2(swapp < 0)] = swap(lat1(swapp < 0), lat2(swapp < 0));
 
@@ -142,8 +140,9 @@ function [s12, azi1, azi2, S12, m12, M12, M21, a12] = geoddistance ...
     ssig1(m) = sbet1(m); csig1(m) = calp1(m) .* cbet1(m);
     ssig2(m) = sbet2(m); csig2(m) = calp2(m) .* cbet2(m);
 
-    sig12(m) = atan2(max(csig1(m) .* ssig2(m) - ssig1(m) .* csig2(m), 0), ...
-                     csig1(m) .* csig2(m) + ssig1(m) .* ssig2(m));
+    sig12(m) = ...
+        atan2(0 + max(0, csig1(m) .* ssig2(m) - ssig1(m) .* csig2(m)), ...
+              csig1(m) .* csig2(m) + ssig1(m) .* ssig2(m));
 
     [s12(m), m12(m), ~, M12(m), M21(m)] = ...
         Lengths(n, sig12(m), ...
@@ -189,68 +188,70 @@ function [s12, azi1, azi2, S12, m12, M12, M21, a12] = geoddistance ...
     numit = Z;
     tripn = Z > 0;
     tripb = tripn;
-    gsave = g;
-    for k = 0 : maxit2 - 1
-      if k == 0 && ~any(g), break, end
-      numit(g) = k;
-      [v(g), dv(g), ...
-       salp2(g), calp2(g), sig12(g), ...
-       ssig1(g), csig1(g), ssig2(g), csig2(g), epsi(g), omg12(g)] = ...
-          Lambda12(sbet1(g), cbet1(g), dn1(g), ...
-                   sbet2(g), cbet2(g), dn2(g), ...
-                   salp1(g), calp1(g), f, A3x, C3x);
-      v = v - lam12;
-      g = g & ~(tripb | ~(abs(v) >= ((tripn * 6) + 2) * tol0));
-      if ~any(g), break, end
+    if any(g)
+      gsave = g;
+      for k = 0 : maxit2 - 1
+        if k == 0 && ~any(g), break, end
+        numit(g) = k;
+        [v(g), dv(g), ...
+         salp2(g), calp2(g), sig12(g), ...
+         ssig1(g), csig1(g), ssig2(g), csig2(g), epsi(g), omg12(g)] = ...
+            Lambda12(sbet1(g), cbet1(g), dn1(g), ...
+                     sbet2(g), cbet2(g), dn2(g), ...
+                     salp1(g), calp1(g), f, A3x, C3x);
+        v = v - lam12;
+        g = g & ~(tripb | ~(abs(v) >= ((tripn * 6) + 2) * tol0));
+        if ~any(g), break, end
 
-      c = g & v > 0;
-      if k <= maxit1
-        c = c & calp1 ./ salp1 > calp1b ./ salp1b;
+        c = g & v > 0;
+        if k <= maxit1
+          c = c & calp1 ./ salp1 > calp1b ./ salp1b;
+        end
+        salp1b(c) = salp1(c); calp1b(c) = calp1(c);
+
+        c = g & v < 0;
+        if k <= maxit1
+          c = c & calp1 ./ salp1 < calp1a ./ salp1a;
+        end
+        salp1a(c) = salp1(c); calp1a(c) = calp1(c);
+
+        if k == maxit1, tripn(g) = false; end
+        if k < maxit1
+          dalp1 = -v ./ dv;
+          sdalp1 = sin(dalp1); cdalp1 = cos(dalp1);
+          nsalp1 = salp1 .* cdalp1 + calp1 .* sdalp1;
+          calp1(g) = calp1(g) .* cdalp1(g) - salp1(g) .* sdalp1(g);
+          salp1(g) = nsalp1(g);
+          tripn = g & abs(v) <= 16 * tol0;
+          c = g & ~(dv > 0 & nsalp1 > 0 & abs(dalp1) < pi);
+          tripn(c) = false;
+        else
+          c = g;
+        end
+
+        salp1(c) = (salp1a(c) + salp1b(c))/2;
+        calp1(c) = (calp1a(c) + calp1b(c))/2;
+        [salp1(g), calp1(g)] = norm2(salp1(g), calp1(g));
+        tripb(c) = abs(salp1a(c)-salp1(c)) + (calp1a(c)-calp1(c)) < tolb ...
+            |      abs(salp1(c)-salp1b(c)) + (calp1(c)-calp1b(c)) < tolb;
       end
-      salp1b(c) = salp1(c); calp1b(c) = calp1(c);
 
-      c = g & v < 0;
-      if k <= maxit1
-        c = c & calp1 ./ salp1 < calp1a ./ salp1a;
-      end
-      salp1a(c) = salp1(c); calp1a(c) = calp1(c);
-
-      if k == maxit1, tripn(g) = false; end
-      if k < maxit1
-        dalp1 = -v ./ dv;
-        sdalp1 = sin(dalp1); cdalp1 = cos(dalp1);
-        nsalp1 = salp1 .* cdalp1 + calp1 .* sdalp1;
-        calp1(g) = calp1(g) .* cdalp1(g) - salp1(g) .* sdalp1(g);
-        salp1(g) = nsalp1(g);
-        tripn = g & abs(v) <= 16 * tol0;
-        c = g & ~(dv > 0 & nsalp1 > 0 & abs(dalp1) < pi);
-        tripn(c) = false;
-      else
-        c = g;
+      g = gsave;
+      if bitand(2+4, lengthmask)
+        % set distance bit if redp or scalp, so that J12 is computed in a
+        % canonical way.
+        lengthmask = bitor(1, lengthmask);
       end
 
-      salp1(c) = (salp1a(c) + salp1b(c))/2;
-      calp1(c) = (calp1a(c) + calp1b(c))/2;
-      [salp1(g), calp1(g)] = norm2(salp1(g), calp1(g));
-      tripb(c) = abs(salp1a(c) - salp1(c)) + (calp1a(c) - calp1(c)) < tolb | ...
-          abs(salp1(c) - salp1b(c)) + (calp1(c) - calp1b(c)) < tolb;
+      [s12(g), m12(g), ~, M12(g), M21(g)] = ...
+          Lengths(epsi(g), sig12(g), ...
+                  ssig1(g), csig1(g), dn1(g), ssig2(g), csig2(g), dn2(g), ...
+                  cbet1(g), cbet2(g), lengthmask, ep2);
+
+      m12(g) = m12(g) * b;
+      s12(g) = s12(g) * b;
+      omg12(g) = lam12(g) - omg12(g);
     end
-
-    g = gsave;
-    if bitand(2+4, lengthmask)
-      % set distance bit if redp or scalp, so that J12 is computed in a
-      % canonical way.
-      lengthmask = bitor(1, lengthmask);
-    end
-
-    [s12(g), m12(g), ~, M12(g), M21(g)] = ...
-        Lengths(epsi(g), sig12(g), ...
-                ssig1(g), csig1(g), dn1(g), ssig2(g), csig2(g), dn2(g), ...
-                cbet1(g), cbet2(g), lengthmask, ep2);
-
-    m12(g) = m12(g) * b;
-    s12(g) = s12(g) * b;
-    omg12(g) = lam12(g) - omg12(g);
   end
 
   s12 = 0 + s12;
@@ -347,8 +348,8 @@ function [sig12, salp1, calp1, salp2, calp2, dnm] = ...
 
   salp1 = cbet2 .* somg12;
   t = cbet2 .* sbet1 .* somg12.^2;
-  calp1 = cvmgt(sbet12  + t ./ (1 + comg12), ...
-                sbet12a - t ./ (1 - comg12), ...
+  calp1 = cvmgt(sbet12  + t ./ max(1, 1 + comg12), ...
+                sbet12a - t ./ max(1, 1 - comg12), ...
                 comg12 >= 0);
 
   ssig12 = hypot(salp1, calp1);
@@ -380,11 +381,14 @@ function [sig12, salp1, calp1, salp2, calp2, dnm] = ...
                   sbet1(s), -cbet1(s), dn1(s), sbet2(s), cbet2(s), dn2(s), ...
                   cbet1(s), cbet2(s), 2);
       x = -1 + m12b ./ (cbet1(s) .* cbet2(s) .* m0 * pi);
-      betscale = cvmgt(sbet12a(s) ./ x, - f * cbet1(s).^2 * pi, x < -0.01);
-      lamscale = betscale ./ cbet1(s);
+      betscale = cvmgt(sbet12a(s) ./ min(-0.01, x), - f * cbet1(s).^2 * pi, ...
+                       x < -0.01);
+     lamscale = betscale ./ cbet1(s);
       y = (lam12(s) - pi) ./ lamscale;
     end
     k = Astroid(x, y);
+    str = y > -tol1 & x > -1 - xthresh;
+    k(str) = 1;
     if f >= 0
       omg12a = -x .* k ./ (1 + k);
     else
@@ -395,7 +399,6 @@ function [sig12, salp1, calp1, salp2, calp2, dnm] = ...
     salp1(s) = cbet2(s) .* somg12;
     calp1(s) = sbet12a(s) - cbet2(s) .* sbet1(s) .* somg12.^2 ./ (1 - comg12);
 
-    str = y > -tol1 & x > -1 - xthresh;
     if any(str)
       salp1s = salp1(s); calp1s = calp1(s);
       if f >= 0
@@ -480,10 +483,10 @@ function [lam12, dlam12, ...
   csig2 = calp2 .* cbet2;  comg2 = csig2;
   [ssig2, csig2] = norm2(ssig2, csig2);
 
-  sig12 = atan2(max(csig1 .* ssig2 - ssig1 .* csig2, 0), ...
+  sig12 = atan2(0 + max(0, csig1 .* ssig2 - ssig1 .* csig2), ...
                 csig1 .* csig2 + ssig1 .* ssig2);
 
-  omg12 = atan2(max(comg1 .* somg2 - somg1 .* comg2, 0), ...
+  omg12 = atan2(0 + max(0, comg1 .* somg2 - somg1 .* comg2), ...
                 comg1 .* comg2 + somg1 .* somg2);
   k2 = calp0.^2 * ep2;
   epsi = k2 ./ (2 * (1 + sqrt(1 + k2)) + k2);
@@ -497,8 +500,8 @@ function [lam12, dlam12, ...
   [~, dlam12] = ...
       Lengths(epsi, sig12, ...
               ssig1, csig1, dn1, ssig2, csig2, dn2, cbet1, cbet2, 2);
-  dlam12 = dlam12 .* f1 ./ (calp2 .* cbet2);
   z = calp2 == 0;
+  dlam12(~z) = dlam12(~z) .* f1 ./ (calp2(~z) .* cbet2(~z));
   dlam12(z) = - 2 * f1 .* dn1(z) ./ sbet1(z);
 end
 

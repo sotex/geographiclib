@@ -9,7 +9,7 @@ int usage(int retval, bool brief) {
 "For full documentation type:\n"
 "    CartConvert --help\n"
 "or visit:\n"
-"    http://geographiclib.sf.net/1.44/CartConvert.1.html\n";
+"    http://geographiclib.sf.net/1.45/CartConvert.1.html\n";
   else
     ( retval ? std::cerr : std::cout ) << "Man page:\n"
 "NAME\n"
@@ -54,9 +54,8 @@ int usage(int retval, bool brief) {
 "       -e  specify the ellipsoid via a f; the equatorial radius is a and the\n"
 "           flattening is f.  Setting f = 0 results in a sphere.  Specify f < 0\n"
 "           for a prolate ellipsoid.  A simple fraction, e.g., 1/297, is\n"
-"           allowed for f.  (Also, if f > 1, the flattening is set to 1/f.)  By\n"
-"           default, the WGS84 ellipsoid is used, a = 6378137 m, f =\n"
-"           1/298.257223563.\n"
+"           allowed for f.  By default, the WGS84 ellipsoid is used, a =\n"
+"           6378137 m, f = 1/298.257223563.\n"
 "\n"
 "       -w  on input and output, longitude precedes latitude (except that, on\n"
 "           input, this can be overridden by a hemisphere designator, N, S, E,\n"

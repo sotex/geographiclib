@@ -274,9 +274,7 @@ public class GeodesicLine {
    * |= {@link GeodesicMask#DISTANCE_IN}; otherwise no parameters are set.
    **********************************************************************/
   public GeodesicData Position(double s12) {
-    return Position(false, s12,
-                    GeodesicMask.LATITUDE | GeodesicMask.LONGITUDE |
-                    GeodesicMask.AZIMUTH);
+    return Position(false, s12, GeodesicMask.STANDARD);
   }
   /**
    * Compute the position of point 2 which is a distance <i>s12</i> (meters)
@@ -320,9 +318,7 @@ public class GeodesicLine {
    * |= {@link GeodesicMask#DISTANCE_IN}; otherwise no parameters are set.
    **********************************************************************/
   public GeodesicData ArcPosition(double a12) {
-    return Position(true, a12,
-                    GeodesicMask.LATITUDE | GeodesicMask.LONGITUDE |
-                    GeodesicMask.AZIMUTH | GeodesicMask.DISTANCE);
+    return Position(true, a12, GeodesicMask.STANDARD);
   }
   /**
    * Compute the position of point 2 which is an arc length <i>a12</i>
@@ -405,7 +401,7 @@ public class GeodesicLine {
     if (arcmode) {
       // Interpret s12_a12 as spherical arc length
       r.a12 = s12_a12;
-      sig12 = s12_a12 * GeoMath.degree;
+      sig12 = Math.toRadians(s12_a12);
       { Pair p = GeoMath.sincosd(s12_a12);
         ssig12 = p.first; csig12 = p.second; }
     } else {
@@ -453,7 +449,7 @@ public class GeodesicLine {
         ssig12 = Math.sin(sig12); csig12 = Math.cos(sig12);
         // Update B12 below
       }
-      r.a12 = sig12 / GeoMath.degree;
+      r.a12 = Math.toDegrees(sig12);
     }
 
     double omg12, lam12, lon12;
@@ -495,7 +491,7 @@ public class GeodesicLine {
       lam12 = omg12 + _A3c *
         ( sig12 + (Geodesic.SinCosSeries(true, ssig2, csig2, _C3a)
                    - _B31));
-      lon12 = lam12 / GeoMath.degree;
+      lon12 = Math.toDegrees(lam12);
       r.lon2 = ((outmask & GeodesicMask.LONG_UNROLL) != 0) ? _lon1 + lon12 :
         GeoMath.AngNormalize(r.lon1 + GeoMath.AngNormalize(lon12));
     }

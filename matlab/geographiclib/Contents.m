@@ -1,5 +1,5 @@
 % GeographicLib toolbox
-% Version 1.44 2015-08-14
+% Version 1.45 2015-09-30
 %
 %   This toolbox provides native MATLAB implementations of a subset of the
 %   C++ library, GeographicLib.  Key components of this toolbox are
@@ -83,6 +83,7 @@
 %   defaultellipsoid - Return the WGS84 ellipsoid
 %   ecc2flat         - Convert eccentricity to flattening
 %   flat2ecc         - Convert flattening to eccentricity
+%   geographiclib_test - The test suite for the geographiclib package
 %
 % Documentation
 %   geoddoc          - Geodesics on an ellipsoid of revolution
@@ -90,5 +91,3 @@
 %   gedoc            - Great ellipses on an ellipsoid of revolution
 
 % Copyright (c) Charles Karney (2015) <charles@karney.com>.
-%
-% This file was distributed with GeographicLib 1.44.

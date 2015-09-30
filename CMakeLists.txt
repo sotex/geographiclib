@@ -2,7 +2,7 @@ project (GeographicLib)
 
 # Version information
 set (PROJECT_VERSION_MAJOR 1)
-set (PROJECT_VERSION_MINOR 44)
+set (PROJECT_VERSION_MINOR 45)
 set (PROJECT_VERSION_PATCH 0)
 set (PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 if (PROJECT_VERSION_PATCH GREATER 0)
@@ -43,7 +43,7 @@ endif ()
 # The library version tracks the numbering given by libtool in the
 # autoconf set up.
 set (LIBVERSION_API 14)
-set (LIBVERSION_BUILD 14.2.0)
+set (LIBVERSION_BUILD 14.2.1)
 string (TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
 string (TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPER)
 
@@ -410,6 +410,7 @@ if (GEOGRAPHICLIB_DOCUMENTATION)
   set (DOXYGEN_SKIP_DOT ON)
   # Version 1.8.7 or later needed for &hellip;
   find_package (Doxygen 1.8.7)
+  find_program (JSDOC jsdoc)
 endif ()
 
 # The man pages are written as pod files and converted to nroff format,
@@ -467,6 +468,7 @@ add_subdirectory (include/GeographicLib)
 add_subdirectory (tools)
 add_subdirectory (man)
 add_subdirectory (doc)
+add_subdirectory (js)
 add_subdirectory (matlab)
 add_subdirectory (python/geographiclib)
 add_subdirectory (examples)
@@ -516,7 +518,7 @@ set (CPACK_SOURCE_IGNORE_FILES
   "${PROJECT_SOURCE_DIR}/(tests|testdata|cgi-bin|.*\\\\.cache)/"
   "${PROJECT_SOURCE_DIR}/(distrib|.*-distrib|.*-installer|geodesic-papers)/"
   "${PROJECT_SOURCE_DIR}/[^/]*\\\\.(html|kmz|pdf)\$"
-  "${PROJECT_SOURCE_DIR}/(autogen|biblio|js-compress)\\\\.sh\$"
+  "${PROJECT_SOURCE_DIR}/(autogen|biblio)\\\\.sh\$"
   "${PROJECT_SOURCE_DIR}/(geodesic-biblio.txt|makefile-admin|[^/]*\\\\.png)\$"
   "${PROJECT_SOURCE_DIR}/matlab/.*blurb.txt\$" )
 set (CPACK_SOURCE_GENERATOR TGZ)
@@ -532,15 +534,15 @@ if (WIN32)
   set (CPACK_NSIS_URL_INFO_ABOUT "http://geographiclib.sf.net")
   set (CPACK_NSIS_HELP_LINK "mailto:charles@karney.com")
   if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-    # Hardcode the prefix for Visual Studio 10
-    set (CPACK_NSIS_INSTALL_ROOT "C:\\\\pkg-vc10-x64")
+    # Hardcode the prefix for Visual Studio 11
+    set (CPACK_NSIS_INSTALL_ROOT "C:\\\\pkg-vc11-x64")
     set (CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_INSTALL_DIRECTORY}-win64")
     set (CPACK_NSIS_PACKAGE_NAME "${PROJECT_NAME} x64 ${PROJECT_VERSION}")
     set (CPACK_PACKAGE_INSTALL_REGISTRY_KEY
       "${PROJECT_NAME}-x64-${PROJECT_VERSION}")
   else ()
-    # Hardcode the prefix for Visual Studio 10
-    set (CPACK_NSIS_INSTALL_ROOT "C:\\\\pkg-vc10")
+    # Hardcode the prefix for Visual Studio 11
+    set (CPACK_NSIS_INSTALL_ROOT "C:\\\\pkg-vc11")
     set (CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_INSTALL_DIRECTORY}-win32")
     set (CPACK_NSIS_PACKAGE_NAME "${PROJECT_NAME} ${PROJECT_VERSION}")
     set (CPACK_PACKAGE_INSTALL_REGISTRY_KEY
@@ -604,7 +606,7 @@ if (MAINTAINER)
       _CPack_Packages/Linux-Source/TGZ.DOS/ &&
       cd _CPack_Packages/Linux-Source/TGZ.DOS &&
       find . -type f |
-      egrep  '/\(doxyfile.*\\.in|MANIFEST.in|NEWS|AUTHORS|INSTALL|pom\\.xml|dummy.*\\.in|.*\\.\(cpp|hpp|h\\.in|txt|pro|usage|pod|py|m|mac|cmake\\.in|cmake|h|js|c|for|dox|cs|vb|inc|java|html\\.in\)\)$$' |
+      egrep -v '/\(compile|config[^/]*|depcomp|install-sh|missing|[Mm]akefile[^/]*|[^/]*\\.\(ac|am|csproj|eps|kmz|m4|pdf|png|resx|settings|sh|sln|vcproj|vcxproj\)\)$$' |
       xargs unix2dos -q -k &&
       find ${CPACK_SOURCE_PACKAGE_FILE_NAME} -type f |
       zip -q ${CMAKE_BINARY_DIR}/${CPACK_SOURCE_PACKAGE_FILE_NAME}.zip -@

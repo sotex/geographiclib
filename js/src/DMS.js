@@ -1,4 +1,4 @@
-/**
+/*
  * DMS.js
  * Transcription of DMS.[ch]pp into JavaScript.
  *
@@ -8,64 +8,92 @@
  * Copyright (c) Charles Karney (2011-2015) <charles@karney.com> and licensed
  * under the MIT/X11 License.  For more information, see
  * http://geographiclib.sourceforge.net/
- **********************************************************************/
+ */
 
 GeographicLib.DMS = {};
 
-(function() {
-  var d = GeographicLib.DMS;
-  var m = GeographicLib.Math;
-  d.lookup = function(s, c) {
+(function(
+  /**
+   * @exports GeographicLib/DMS
+   * @description Decode/Encode angles expressed as degrees, minutes, and
+   *   seconds.  This module defines several constants:
+   *   - hemisphere indicator (returned by
+   *       {@link module:GeographicLib/DMS.Decode Decode}) and a formatting
+   *       indicator (used by
+   *       {@link module:GeographicLib/DMS.Encode Encode})
+   *     - NONE = 0, no designator and format as plain angle;
+   *     - LATITUDE = 1, a N/S designator and format as latitude;
+   *     - LONGITUDE = 2, an E/W designator and format as longitude;
+   *     - AZIMUTH = 3, format as azimuth;
+   *   - the specification of the trailing component in
+   *       {@link module:GeographicLib/DMS.Encode Encode}
+   *     - DEGREE;
+   *     - MINUTE;
+   *     - SECOND.
+   */
+  d) {
+  "use strict";
+
+  var lookup, zerofill, InternalDecode, NumMatch,
+      hemispheres_ = "SNWE",
+      signs_ = "-+",
+      digits_ = "0123456789",
+      dmsindicators_ = "D'\":",
+      // dmsindicatorsu_ = "\u00b0\u2032\u2033"; // Unicode variants
+      dmsindicatorsu_ = "\u00b0'\"", // Use degree symbol
+      components_ = ["degrees", "minutes", "seconds"];
+  lookup = function(s, c) {
     return s.indexOf(c.toUpperCase());
   };
-  d.zerofill = function(s, n) {
+  zerofill = function(s, n) {
     return String("0000").substr(0, Math.max(0, Math.min(4, n-s.length))) +
       s;
   };
-  d.hemispheres_ = "SNWE";
-  d.signs_ = "-+";
-  d.digits_ = "0123456789";
-  d.dmsindicators_ = "D'\":";
-  // d.dmsindicatorsu_ = "\u00b0\u2032\u2033"; // Unicode variants
-  d.dmsindicatorsu_ = "\u00b0'\""; // Use degree symbol
-  d.components_ = ["degrees", "minutes", "seconds"];
   d.NONE = 0;
   d.LATITUDE = 1;
   d.LONGITUDE = 2;
   d.AZIMUTH = 3;
-  d.NUMBER = 4;
   d.DEGREE = 0;
   d.MINUTE = 1;
   d.SECOND = 2;
 
-  // return val, ind
+  /**
+   * @summary Decode a DMS string.
+   * @description The interpretation of the string is given in the
+   *   documentation of the corresponding function, Decode(string&, flag&)
+   *   in the {@link
+   *   http://geographiclib.sourceforge.net/html/classGeographicLib_1_1DMS.html
+   *   C++ DMS class}
+   * @param {string} dms the string.
+   * @returns {object} r where r.val is the decoded value (degrees) and r.ind
+   *   is a hemisphere designator, one of NONE, LATITUDE, LONGITUDE.
+   * @throws an error if the string is illegal.
+   */
   d.Decode = function(dms) {
-    var dmsa = dms;
-    dmsa = dmsa.replace(/\u00b0/g, 'd');
-    dmsa = dmsa.replace(/\u00ba/g, 'd');
-    dmsa = dmsa.replace(/\u2070/g, 'd');
-    dmsa = dmsa.replace(/\u02da/g, 'd');
-    dmsa = dmsa.replace(/\u2032/g, '\'');
-    dmsa = dmsa.replace(/\u00b4/g, '\'');
-    dmsa = dmsa.replace(/\u2019/g, '\'');
-    dmsa = dmsa.replace(/\u2033/g, '"');
-    dmsa = dmsa.replace(/\u201d/g, '"');
-    dmsa = dmsa.replace(/\u2212/g, '-');
-    dmsa = dmsa.replace(/''/g, '"');
-    dmsa = dmsa.trim();
-    var errormsg = new String("");
-    var end = dmsa.length;
-    var v = 0, i = 0, mi, pi, vals;
-    var ind1 = d.NONE, ind2;
-    var p, pa, pb;
+    var dmsa = dms, end,
+        v = 0, i = 0, mi, pi, vals,
+        ind1 = d.NONE, ind2, p, pa, pb;
+    dmsa = dmsa.replace(/\u00b0/g, 'd')
+          .replace(/\u00ba/g, 'd')
+          .replace(/\u2070/g, 'd')
+          .replace(/\u02da/g, 'd')
+          .replace(/\u2032/g, '\'')
+          .replace(/\u00b4/g, '\'')
+          .replace(/\u2019/g, '\'')
+          .replace(/\u2033/g, '"')
+          .replace(/\u201d/g, '"')
+          .replace(/\u2212/g, '-')
+          .replace(/''/g, '"')
+          .trim();
+    end = dmsa.length;
     // p is pointer to the next piece that needs decoding
     for (p = 0; p < end; p = pb, ++i) {
       pa = p;
       // Skip over initial hemisphere letter (for i == 0)
-      if (i == 0 && d.lookup(d.hemispheres_, dmsa.charAt(pa)) >= 0)
+      if (i === 0 && lookup(hemispheres_, dmsa.charAt(pa)) >= 0)
         ++pa;
       // Skip over initial sign (checking for it if i == 0)
-      if (i > 0 || (pa < end && d.lookup(d.signs_, dmsa.charAt(pa)) >= 0))
+      if (i > 0 || (pa < end && lookup(signs_, dmsa.charAt(pa)) >= 0))
         ++pa;
       // Find next sign
       mi = dmsa.substr(pa, end - pa).indexOf('-');
@@ -73,7 +101,7 @@ GeographicLib.DMS = {};
       if (mi < 0) mi = end; else mi += pa;
       if (pi < 0) pi = end; else pi += pa;
       pb = Math.min(mi, pi);
-      vals = d.InternalDecode(dmsa.substr(p, pb - p));
+      vals = InternalDecode(dmsa.substr(p, pb - p));
       v += vals.val; ind2 = vals.ind;
       if (ind1 == d.NONE)
         ind1 = ind2;
@@ -81,26 +109,31 @@ GeographicLib.DMS = {};
         throw new Error("Incompatible hemisphere specifies in " +
                         dmsa.substr(0, pb));
     }
-    if (i == 0)
+    if (i === 0)
       throw new Error("Empty or incomplete DMS string " + dmsa);
     return {val: v, ind: ind1};
   };
 
-  d.InternalDecode = function(dmsa) {
-    var vals = {};
-    var errormsg = new String("");
+  InternalDecode = function(dmsa) {
+    var vals = {}, errormsg = "",
+        sign, beg, end, ind1, k,
+        ipieces, fpieces, npiece,
+        icurrent, fcurrent, ncurrent, p,
+        pointseen,
+        digcount, intcount,
+        x;
     do {                       // Executed once (provides the ability to break)
-      var sign = 1;
-      var beg = 0, end = dmsa.length;
-      var ind1 = d.NONE;
-      var k = -1;
-      if (end > beg && (k = d.lookup(d.hemispheres_, dmsa.charAt(beg))) >= 0) {
+      sign = 1;
+      beg = 0; end = dmsa.length;
+      ind1 = d.NONE;
+      k = -1;
+      if (end > beg && (k = lookup(hemispheres_, dmsa.charAt(beg))) >= 0) {
         ind1 = (k & 2) ? d.LONGITUDE : d.LATITUDE;
         sign = (k & 1) ? 1 : -1;
         ++beg;
       }
       if (end > beg &&
-          (k = d.lookup(d.hemispheres_, dmsa.charAt(end-1))) >= 0) {
+          (k = lookup(hemispheres_, dmsa.charAt(end-1))) >= 0) {
         if (k >= 0) {
           if (ind1 !== d.NONE) {
             if (dmsa.charAt(beg - 1).toUpperCase() ===
@@ -119,7 +152,7 @@ GeographicLib.DMS = {};
           --end;
         }
       }
-      if (end > beg && (k = d.lookup(d.signs_, dmsa.charAt(beg))) >= 0) {
+      if (end > beg && (k = lookup(signs_, dmsa.charAt(beg))) >= 0) {
         if (k >= 0) {
           sign *= k ? 1 : -1;
           ++beg;
@@ -129,18 +162,19 @@ GeographicLib.DMS = {};
         errormsg = "Empty or incomplete DMS string " + dmsa;
         break;
       }
-      var ipieces = [0, 0, 0];
-      var fpieces = [0, 0, 0];
-      var npiece = 0;
-      var icurrent = 0;
-      var fcurrent = 0;
-      var ncurrent = 0, p = beg;
-      var pointseen = false;
-      var digcount = 0;
-      var intcount = 0;
+      ipieces = [0, 0, 0];
+      fpieces = [0, 0, 0];
+      npiece = 0;
+      icurrent = 0;
+      fcurrent = 0;
+      ncurrent = 0;
+      p = beg;
+      pointseen = false;
+      digcount = 0;
+      intcount = 0;
       while (p < end) {
-        var x = dmsa.charAt(p++);
-        if ((k = d.lookup(d.digits_, x)) >= 0) {
+        x = dmsa.charAt(p++);
+        if ((k = lookup(digits_, x)) >= 0) {
           ++ncurrent;
           if (digcount > 0) {
             ++digcount;         // Count of decimal digits
@@ -156,27 +190,27 @@ GeographicLib.DMS = {};
           }
           pointseen = true;
           digcount = 1;
-        } else if ((k = d.lookup(d.dmsindicators_, x)) >= 0) {
+        } else if ((k = lookup(dmsindicators_, x)) >= 0) {
           if (k >= 3) {
             if (p === end) {
-              errormsg = "Illegal for : to appear at the end of " +
+              errormsg = "Illegal for colon to appear at the end of " +
                 dmsa.substr(beg, end - beg);
               break;
             }
             k = npiece;
           }
           if (k === npiece - 1) {
-            errormsg = "Repeated " + d.components_[k] +
+            errormsg = "Repeated " + components_[k] +
               " component in " + dmsa.substr(beg, end - beg);
             break;
           } else if (k < npiece) {
-            errormsg = d.components_[k] + " component follows " +
-              d.components_[npiece - 1] + " component in " +
+            errormsg = components_[k] + " component follows " +
+              components_[npiece - 1] + " component in " +
               dmsa.substr(beg, end - beg);
             break;
           }
           if (ncurrent === 0) {
-            errormsg = "Missing numbers in " + d.components_[k] +
+            errormsg = "Missing numbers in " + components_[k] +
               " component of " + dmsa.substr(beg, end - beg);
             break;
           }
@@ -192,7 +226,7 @@ GeographicLib.DMS = {};
             icurrent = fcurrent = 0;
             ncurrent = digcount = intcount = 0;
           }
-        } else if (d.lookup(d.signs_, x) >= 0) {
+        } else if (lookup(signs_, x) >= 0) {
           errormsg = "Internal sign in DMS string " +
             dmsa.substr(beg, end - beg);
           break;
@@ -204,7 +238,7 @@ GeographicLib.DMS = {};
       }
       if (errormsg.length)
         break;
-      if (d.lookup(d.dmsindicators_, dmsa.charAt(p - 1)) < 0) {
+      if (lookup(dmsindicators_, dmsa.charAt(p - 1)) < 0) {
         if (npiece >= 3) {
           errormsg = "Extra text following seconds in DMS string " +
             dmsa.substr(beg, end - beg);
@@ -230,11 +264,11 @@ GeographicLib.DMS = {};
       }
       // Note that we accept 59.999999... even though it rounds to 60.
       if (ipieces[1] >= 60 || fpieces[1] > 60) {
-        errormsg = "Minutes " + fpieces[1] + " not in range [0, 60)";
+        errormsg = "Minutes " + fpieces[1] + " not in range [0,60)";
         break;
       }
       if (ipieces[2] >= 60 || fpieces[2] > 60) {
-        errormsg = "Seconds " + fpieces[2] + " not in range [0, 60)";
+        errormsg = "Seconds " + fpieces[2] + " not in range [0,60)";
         break;
       }
       vals.ind = ind1;
@@ -245,7 +279,7 @@ GeographicLib.DMS = {};
           ( fpieces[1] ? (60*fpieces[0] + fpieces[1]) / 60 : fpieces[0] ) );
       return vals;
     } while (false);
-    vals.val = d.NumMatch(dmsa);
+    vals.val = NumMatch(dmsa);
     if (vals.val === 0)
       throw new Error(errormsg);
     else
@@ -253,13 +287,14 @@ GeographicLib.DMS = {};
     return vals;
   };
 
-  d.NumMatch = function(s) {
+  NumMatch = function(s) {
+    var t, sign, p0, p1;
     if (s.length < 3)
       return 0;
-    var t = s.toUpperCase().replace(/0+$/,"");
-    var sign = t.charAt(0) === '-' ? -1 : 1;
-    var p0 = t.charAt(0) === '-' || t.charAt(0) === '+' ? 1 : 0;
-    var p1 = t.length - 1;
+    t = s.toUpperCase().replace(/0+$/,"");
+    sign = t.charAt(0) === '-' ? -1 : 1;
+    p0 = t.charAt(0) === '-' || t.charAt(0) === '+' ? 1 : 0;
+    p1 = t.length - 1;
     if (p1 + 1 < p0 + 3)
       return 0;
     // Strip off sign and trailing 0s
@@ -272,56 +307,101 @@ GeographicLib.DMS = {};
     return 0;
   };
 
-  // return lat, lon
-  d.DecodeLatLon = function(stra, strb, swaplatlong) {
-    var vals = {};
-    if (!swaplatlong) swaplatlong = false;
-    var valsa = d.Decode(stra);
-    var valsb = d.Decode(strb);
-    var a = valsa.val, ia = valsa.ind;
-    var b = valsb.val, ib = valsb.ind;
+  /**
+   * @summary Decode two DMS strings interpreting them as a latitude/longitude
+   *   pair.
+   * @param {string} stra the first string.
+   * @param {string} strb the first string.
+   * @param {bool} [longfirst = false] if true assume then longitude is given
+   *   first (in the absense of any hemisphere indicators).
+   * @returns {object} r where r.lat is the decoded latitude and r.lon is the
+   *   decoded longitude (both in degrees).
+   * @throws an error if the strings are illegal.
+   */
+  d.DecodeLatLon = function(stra, strb, longfirst) {
+    var vals = {},
+        valsa = d.Decode(stra),
+        valsb = d.Decode(strb),
+        a = valsa.val, ia = valsa.ind,
+        b = valsb.val, ib = valsb.ind,
+        lat, lon;
+    if (!longfirst) longfirst = false;
     if (ia === d.NONE && ib === d.NONE) {
-      // Default to lat, long unless swaplatlong
-      ia = swaplatlong ? d.LONGITUDE : d.LATITUDE;
-      ib = swaplatlong ? d.LATITUDE : d.LONGITUDE;
+      // Default to lat, long unless longfirst
+      ia = longfirst ? d.LONGITUDE : d.LATITUDE;
+      ib = longfirst ? d.LATITUDE : d.LONGITUDE;
     } else if (ia === d.NONE)
       ia = d.LATITUDE + d.LONGITUDE - ib;
     else if (ib === d.NONE)
       ib = d.LATITUDE + d.LONGITUDE - ia;
     if (ia === ib)
-      throw new Error("Both " + stra + " and " +
-                      strb + " interpreted as " +
+      throw new Error("Both " + stra + " and " + strb + " interpreted as " +
                       (ia === d.LATITUDE ? "latitudes" : "longitudes"));
-    var lat = ia === d.LATITUDE ? a : b, lon = ia === d.LATITUDE ? b : a;
+    lat = ia === d.LATITUDE ? a : b;
+    lon = ia === d.LATITUDE ? b : a;
     if (Math.abs(lat) > 90)
-      throw new Error("Latitude " + lat + "d not in [-90d, 90d]");
+      throw new Error("Latitude " + lat + " not in [-90,90]");
     vals.lat = lat;
     vals.lon = lon;
     return vals;
   };
 
+  /**
+   * @summary Decode a DMS string interpreting it as an arc length.
+   * @param {string} angstr the string (this must not include a hemisphere
+   *   indicator).
+   * @returns {number} the arc length (degrees).
+   * @throws an error if the string is illegal.
+   */
   d.DecodeAngle = function(angstr) {
-    var vals = d.Decode(angstr);
-    var ang = vals.val, ind = vals.ind;
+    var vals = d.Decode(angstr),
+        ang = vals.val, ind = vals.ind;
     if (ind !== d.NONE)
-      throw new Error("Arc angle " + angstr +
-                      " includes a hemisphere, N/E/W/S");
+      throw new Error("Arc angle " + angstr + " includes a hemisphere N/E/W/S");
     return ang;
   };
 
+  /**
+   * @summary Decode a DMS string interpreting it as an azimuth.
+   * @param {string} azistr the string (this may include an E/W hemisphere
+   *   indicator).
+   * @returns {number} the azimuth (degrees).
+   * @throws an error if the string is illegal.
+   */
   d.DecodeAzimuth = function(azistr) {
-    var vals = d.Decode(azistr);
-    var azi = vals.val, ind = vals.ind;
+    var vals = d.Decode(azistr),
+        azi = vals.val, ind = vals.ind;
     if (ind === d.LATITUDE)
-      throw new Error("Azimuth " + azistr +
-                      " has a latitude hemisphere, N/S");
-    azi = m.AngNormalize(azi);
+      throw new Error("Azimuth " + azistr + " has a latitude hemisphere N/S");
     return azi;
   };
 
+  /**
+   * @summary Convert angle (in degrees) into a DMS string (using &deg;, ',
+   *  and &quot;).
+   * @param {number} angle input angle (degrees).
+   * @param {number} trailing one of DEGREE, MINUTE, or SECOND to indicate
+   *   the trailing component of the string (this component is given as a
+   *   decimal number if necessary).
+   * @param {number} prec the number of digits after the decimal point for
+   *   the trailing component.
+   * @param {number} [ind = NONE] a formatting indicator, one of NONE,
+   *   LATITUDE, LONGITUDE, AZIMUTH.
+   * @returns {string} the resulting string formatted as follows:
+   *   * NONE, signed result no leading zeros on degrees except in the units
+   *     place, e.g., -8&deg;03'.
+   *   * LATITUDE, trailing N or S hemisphere designator, no sign, pad
+   *     degrees to 2 digits, e.g., 08&deg;03'S.
+   *   * LONGITUDE, trailing E or W hemisphere designator, no sign, pad
+   *     degrees to 3 digits, e.g., 008&deg;03'W.
+   *   * AZIMUTH, convert to the range [0, 360&deg;), no sign, pad degrees to
+   *     3 digits, e.g., 351&deg;57'.
+   */
   d.Encode = function(angle, trailing, prec, ind) {
     // Assume check on range of input angle has been made by calling
     // routine (which might be able to offer a better diagnostic).
+    var scale = 1, i, sign,
+        idegree, fdegree, f, pieces, ip, fp, s;
     if (!ind) ind = d.NONE;
     if (!isFinite(angle))
       return angle < 0 ? String("-inf") :
@@ -330,21 +410,19 @@ GeographicLib.DMS = {};
     // 15 - 2 * trailing = ceiling(log10(2^53/90/60^trailing)).
     // This suffices to give full real precision for numbers in [-90,90]
     prec = Math.min(15 - 2 * trailing, prec);
-    var scale = 1, i;
     for (i = 0; i < trailing; ++i)
       scale *= 60;
     for (i = 0; i < prec; ++i)
       scale *= 10;
     if (ind === d.AZIMUTH)
       angle -= Math.floor(angle/360) * 360;
-    var sign = angle < 0 ? -1 : 1;
+    sign = angle < 0 ? -1 : 1;
     angle *= sign;
 
     // Break off integer part to preserve precision in manipulation of
     // fractional part.
-    var
-    idegree = Math.floor(angle),
-    fdegree = (angle - idegree) * scale + 0.5,
+    idegree = Math.floor(angle);
+    fdegree = (angle - idegree) * scale + 0.5;
     f = Math.floor(fdegree);
     // Implement the "round ties to even" rule
     fdegree = (f == fdegree && (f & 1)) ? f - 1 : f;
@@ -355,47 +433,45 @@ GeographicLib.DMS = {};
       idegree += 1;
       fdegree -= 1;
     }
-    var pieces = [fdegree, 0, 0];
+    pieces = [fdegree, 0, 0];
     for (i = 1; i <= trailing; ++i) {
-      var
-      ip = Math.floor(pieces[i - 1]),
+      ip = Math.floor(pieces[i - 1]);
       fp = pieces[i - 1] - ip;
       pieces[i] = fp * 60;
       pieces[i - 1] = ip;
     }
     pieces[0] += idegree;
-    var s = new String("");
+    s = "";
     if (ind === d.NONE && sign < 0)
       s += '-';
     switch (trailing) {
     case d.DEGREE:
-      s += d.zerofill(pieces[0].toFixed(prec),
-                      ind === d.NONE ? 0 :
-                      1 + Math.min(ind, 2) + prec + (prec ? 1 : 0)) +
-        d.dmsindicatorsu_.charAt(0);
+      s += zerofill(pieces[0].toFixed(prec),
+                    ind === d.NONE ? 0 :
+                    1 + Math.min(ind, 2) + prec + (prec ? 1 : 0)) +
+        dmsindicatorsu_.charAt(0);
       break;
     default:
-      s += d.zerofill(pieces[0].toFixed(0),
-                      ind === d.NONE ? 0 : 1 + Math.min(ind, 2)) +
-        d.dmsindicatorsu_.charAt(0);
+      s += zerofill(pieces[0].toFixed(0),
+                    ind === d.NONE ? 0 : 1 + Math.min(ind, 2)) +
+        dmsindicatorsu_.charAt(0);
       switch (trailing) {
       case d.MINUTE:
-        s += d.zerofill(pieces[1].toFixed(prec), 2 + prec + (prec ? 1 : 0)) +
-          d.dmsindicatorsu_.charAt(1);
+        s += zerofill(pieces[1].toFixed(prec), 2 + prec + (prec ? 1 : 0)) +
+          dmsindicatorsu_.charAt(1);
         break;
       case d.SECOND:
-        s += d.zerofill(pieces[1].toFixed(0), 2) + d.dmsindicatorsu_.charAt(1);
-        s += d.zerofill(pieces[2].toFixed(prec), 2 + prec + (prec ? 1 : 0)) +
-          d.dmsindicatorsu_.charAt(2);
+        s += zerofill(pieces[1].toFixed(0), 2) + dmsindicatorsu_.charAt(1);
+        s += zerofill(pieces[2].toFixed(prec), 2 + prec + (prec ? 1 : 0)) +
+          dmsindicatorsu_.charAt(2);
         break;
       default:
         break;
       }
     }
     if (ind !== d.NONE && ind !== d.AZIMUTH)
-      s += d.hemispheres_.charAt((ind === d.LATITUDE ? 0 : 2) +
-                                 (sign < 0 ? 0 : 1));
+      s += hemispheres_.charAt((ind === d.LATITUDE ? 0 : 2) +
+                               (sign < 0 ? 0 : 1));
     return s;
   };
-
-})();
+})(GeographicLib.DMS);

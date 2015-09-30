@@ -24,41 +24,93 @@
 		   GeographicLib" />
     <meta http-equiv="Content-Type"
 	  content="text/html; charset=ISO-8859-1">
-    <script type="text/javascript"
-	    src="http://geographiclib.sf.net/scripts/geographiclib.js">
+    <!--
+	 Full URL for latest version of geographiclib.min.js is
+	 http://geographiclib.sf.net/scripts/geographiclib.min.js
+	 URL for a specific version is, for example,
+	 http://geographiclib.sf.net/scripts/geographiclib-1.45.min.js
+      -->
+    <script type="text/javascript" src="geographiclib.min.js">
     </script>
     <script type="text/javascript">
-var geod = GeographicLib.Geodesic.WGS84;
-var dms = GeographicLib.DMS;
+"use strict";
+
+var geod = GeographicLib.Geodesic.WGS84,
+    dms = GeographicLib.DMS;
+
+(function(g) {
+  "use strict";
+
+  /*
+   * Compute the area of a polygon
+   */
+  g.Geodesic.prototype.Area = function(points, polyline) {
+    var poly = this.Polygon(polyline), i;
+    for (i = 0; i < points.length; ++i)
+      poly.AddPoint(points[i].lat, points[i].lon);
+    return poly.Compute(false, true);
+  };
+
+  /*
+   * split a geodesic line into k equal pieces which are no longer than about
+   * ds12 (but k cannot exceed maxk, default 20), and returns an array of
+   * length k + 1 of objects with fields lat, lon, azi.
+   */
+  g.Geodesic.prototype.InversePath =
+    function(lat1, lon1, lat2, lon2, ds12, maxk) {
+      var t = this.Inverse(lat1, lon1, lat2, lon2),
+          k, points, line, da12, vals, i;
+      if (!maxk) maxk = 20;
+      if (!(ds12 > 0))
+        throw new Error("ds12 must be a positive number");
+      k = Math.max(1, Math.min(maxk, Math.ceil(t.s12/ds12)));
+      points = new Array(k + 1);
+      points[0] = {lat: t.lat1, lon: t.lon1, azi: t.azi1};
+      points[k] = {lat: t.lat2, lon: t.lon2, azi: t.azi2};
+      if (k > 1) {
+        line = this.Line(t.lat1, t.lon1, t.azi1, g.STANDARD);
+        da12 = t.a12/k;
+        for (i = 1; i < k; ++i) {
+          vals = line.ArcPosition(i * da12);
+          points[i] = {lat: vals.lat2, lon: vals.lon2, azi: vals.azi2};
+        }
+      }
+      return points;
+    };
+
+})(GeographicLib.Geodesic);
+
 function formatpoint(lat, lon, azi, dmsformat, prec) {
+  var trail;
   prec += 5;
   if (dmsformat) {
-    var trail = prec < 2 ? dms.DEGREE :
+    trail = prec < 2 ? dms.DEGREE :
       (prec < 4 ? dms.MINUTE : dms.SECOND);
     prec = prec < 2 ? prec : (prec < 4 ? prec - 2 : prec - 4);
     return (dms.Encode(lat, trail, prec, dms.LATITUDE) + " " +
-	    dms.Encode(lon, trail, prec, dms.LONGITUDE) + " " +
-	    dms.Encode(azi, trail, prec, dms.AZIMUTH));
+            dms.Encode(lon, trail, prec, dms.LONGITUDE) + " " +
+            dms.Encode(azi, trail, prec, dms.AZIMUTH));
   } else {
     return (lat.toFixed(prec) + " " +
-	    lon.toFixed(prec) + " " +
-	    azi.toFixed(prec));
+            lon.toFixed(prec) + " " +
+            azi.toFixed(prec));
   }
-}
+};
 
 function GeodesicInverse(input, dmsformat, prec) {
-  var result = {};
+  var result = {},
+      t, p1, p2;
   try {
     // Input is a blank-delimited line: lat1 lon1 lat2 lon2
-    var t = new String(input);
+    t = input;
     t = t.replace(/^\s+/,"").replace(/\s+$/,"").split(/[\s,]+/,6);
     if (t.length != 4)
       throw new Error("Need 4 input items");
-    var p1 = GeographicLib.DMS.DecodeLatLon(t[0], t[1]);
-    var p2 = GeographicLib.DMS.DecodeLatLon(t[2], t[3]);
+    p1 = GeographicLib.DMS.DecodeLatLon(t[0], t[1]);
+    p2 = GeographicLib.DMS.DecodeLatLon(t[2], t[3]);
     t = geod.Inverse(p1.lat, p1.lon, p2.lat, p2.lon,
-		     GeographicLib.Geodesic.ALL |
-		     GeographicLib.Geodesic.LONG_UNROLL);
+                     GeographicLib.Geodesic.ALL |
+                     GeographicLib.Geodesic.LONG_UNROLL);
     result.status = "OK";
     result.p1 = formatpoint(t.lat1, t.lon1, t.azi1, dmsformat, prec);
     result.p2 = formatpoint(t.lat2, t.lon2, t.azi2, dmsformat, prec);
@@ -79,22 +131,23 @@ function GeodesicInverse(input, dmsformat, prec) {
     result.S12 = "";
   }
   return result;
-}
+};
 
 function GeodesicDirect(input, dmsformat, prec) {
-  var result = {};
+  var result = {},
+      t, p1, azi1, s12;
   try {
     // Input is a blank-delimited line: lat1 lon1 azi1 s12
-    var t = new String(input);
+    t = input;
     t = t.replace(/^\s+/,"").replace(/\s+$/,"").split(/[\s,]+/,6);
     if (t.length != 4)
       throw new Error("Need 4 input items");
-    var p1 = GeographicLib.DMS.DecodeLatLon(t[0], t[1]);
-    var azi1 = GeographicLib.DMS.DecodeAzimuth(t[2]);
-    var s12 = parseFloat(t[3]);
+    p1 = GeographicLib.DMS.DecodeLatLon(t[0], t[1]);
+    azi1 = GeographicLib.DMS.DecodeAzimuth(t[2]);
+    s12 = parseFloat(t[3]);
     t = geod.Direct(p1.lat, p1.lon, azi1, s12,
-		    GeographicLib.Geodesic.ALL |
-		    GeographicLib.Geodesic.LONG_UNROLL);
+                    GeographicLib.Geodesic.ALL |
+                    GeographicLib.Geodesic.LONG_UNROLL);
     result.status = "OK";
     result.p1 = formatpoint(t.lat1, t.lon1, t.azi1, dmsformat, prec);
     result.p2 = formatpoint(t.lat2, t.lon2, t.azi2, dmsformat, prec);
@@ -115,27 +168,25 @@ function GeodesicDirect(input, dmsformat, prec) {
     result.S12 = "";
   }
   return result;
-}
+};
 
 function GeodesicInversePath(input, dmsformat, prec) {
-  var result = {};
+  var result = {},
+      t, p1, p2, ds12, maxnum, i;
   try {
     // Input is a blank-delimited line: lat1 lon1 lat2 lon2 ds12 maxnum
-    var t = new String(input);
+    t = input;
     t = t.replace(/^\s+/,"").replace(/\s+$/,"").split(/[\s,]+/,8);
     if (t.length != 6)
       throw new Error("Need 6 input items");
-    var p1 = GeographicLib.DMS.DecodeLatLon(t[0], t[1]);
-    var p2 = GeographicLib.DMS.DecodeLatLon(t[2], t[3]);
-    var ds12 = parseFloat(t[4]);
-    var maxnum = parseInt(t[5]);
-    var t = new String(input);
-    t = t.split(/[\s,]+/,8);
-    if (t[0] == "") t.shift();
+    p1 = GeographicLib.DMS.DecodeLatLon(t[0], t[1]);
+    p2 = GeographicLib.DMS.DecodeLatLon(t[2], t[3]);
+    ds12 = parseFloat(t[4]);
+    maxnum = parseInt(t[5]);
     t = geod.InversePath(p1.lat, p1.lon, p2.lat, p2.lon, ds12, maxnum);
     result.status = "OK";
     result.points = ""
-    for (var i = 0; i < t.length; ++i)
+    for (i = 0; i < t.length; ++i)
       result.points +=
       formatpoint(t[i].lat, t[i].lon, t[i].azi, dmsformat, prec) + "\n";
   }
@@ -144,21 +195,22 @@ function GeodesicInversePath(input, dmsformat, prec) {
     result.points = "";
   }
   return result;
-}
+};
 
 function GeodesicArea(input, polyline) {
-  var result = {};
+  var result = {},
+      t, i, pos;
   try {
     // Input is a newline-delimited points;
     // each point is blank-delimited: lat lon
-    var t = new String(input);
+    t = input;
     t = t.split(/[\r\n]/);
-    if (t[0] == "") t.shift();
-    if (t[t.length-1] == "") t.pop();
-    for (var i = 0; i < t.length; ++i) {
-      var pos = t[i].replace(/^\s+/,"").replace(/\s+$/,"").split(/[\s,]+/,4);
+    if (t.length > 0 && t[0] == "") t.shift();
+    if (t.length > 0 && t[t.length-1] == "") t.pop();
+    for (i = 0; i < t.length; ++i) {
+      pos = t[i].replace(/^\s+/,"").replace(/\s+$/,"").split(/[\s,]+/,4);
       if (pos.length != 2)
-	throw new Error("Need 2 items on each line");
+        throw new Error("Need 2 items on each line");
       t[i] = dms.DecodeLatLon(pos[0], pos[1]);
     }
     t = geod.Area(t, polyline);
@@ -173,7 +225,7 @@ function GeodesicArea(input, polyline) {
     result.area = "";
   }
   return result;
-}
+};
     </script>
   </head>
   <body>
@@ -182,13 +234,15 @@ function GeodesicArea(input, polyline) {
     </div>
     <p>
       This page illustrates the geodesic routines available in
-      <a href="http://geographiclib.sf.net">GeographicLib</a>.
-      The C++ code has been converted to JavaScript so the calculations
-      are carried out on the client.  The algorithms are considerably
-      more accurate than Vincenty's method, and offer more functionality
-      (an inverse method which never fails to converge, differential
-      properties of the geodesic, and the area under a geodesic).  The
-      algorithms are derived in
+      JavaScript package
+      <a href="https://www.npmjs.com/package/geographiclib">
+	geographiclib</a>, which is documented
+      <a href="http://geographiclib.sourceforge.net/html/js/">
+	here</a>.
+      The algorithms are considerably more accurate than Vincenty's
+      method, and offer more functionality (an inverse method which
+      never fails to converge, differential properties of the geodesic,
+      and the area under a geodesic).  The algorithms are derived in
       <blockquote>
 	Charles F. F. Karney,<br>
 	<a href="https://dx.doi.org/10.1007/s00190-012-0578-z">

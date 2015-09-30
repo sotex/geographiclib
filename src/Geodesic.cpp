@@ -51,18 +51,18 @@ namespace GeographicLib {
       // which otherwise failed for Visual Studio 10 (Release and Debug)
     , tol1_(200 * tol0_)
     , tol2_(sqrt(tol0_))
-      // Check on bisection interval
-    , tolb_(tol0_ * tol2_)
+    , tolb_(tol0_ * tol2_)      // Check on bisection interval
     , xthresh_(1000 * tol2_)
     , _a(a)
-    , _f(f <= 1 ? f : 1/f)
+    , _f(f <= 1 ? f : 1/f)      // f > 1 behavior is DEPRECATED
     , _f1(1 - _f)
     , _e2(_f * (2 - _f))
-    , _ep2(_e2 / Math::sq(_f1))       // e2 / (1 - e2)
+    , _ep2(_e2 / Math::sq(_f1)) // e2 / (1 - e2)
     , _n(_f / ( 2 - _f))
     , _b(_a * _f1)
     , _c2((Math::sq(_a) + Math::sq(_b) *
-           Math::eatanhe(real(1), (_f < 0 ? -1 : 1) * sqrt(abs(_e2))) / _e2)
+           (_e2 == 0 ? 1 :
+            Math::eatanhe(real(1), (_f < 0 ? -1 : 1) * sqrt(abs(_e2))) / _e2))
           / 2) // authalic radius squared
       // The sig12 threshold for "really short".  Using the auxiliary sphere
       // solution with dnm computed at (bet1 + bet2) / 2, the relative error in
@@ -151,7 +151,8 @@ namespace GeographicLib {
     lat1 = Math::AngRound(Math::LatFix(lat1));
     lat2 = Math::AngRound(Math::LatFix(lat2));
     // Swap points so that point with higher (abs) latitude is point 1
-    int swapp = abs(lat1) >= abs(lat2) ? 1 : -1;
+    // If one latitude is a nan, then it becomes lat1.
+    int swapp = abs(lat1) < abs(lat2) ? -1 : 1;
     if (swapp < 0) {
       lonsign *= -1;
       swap(lat1, lat2);
@@ -228,7 +229,7 @@ namespace GeographicLib {
         ssig2 = sbet2, csig2 = calp2 * cbet2;
 
       // sig12 = sig2 - sig1
-      sig12 = atan2(max(csig1 * ssig2 - ssig1 * csig2, real(0)),
+      sig12 = atan2(max(real(0), csig1 * ssig2 - ssig1 * csig2),
                     csig1 * csig2 + ssig1 * ssig2);
       {
         real dummy;
@@ -794,11 +795,11 @@ namespace GeographicLib {
     // Math::norm(somg2, comg2); -- don't need to normalize!
 
     // sig12 = sig2 - sig1, limit to [0, pi]
-    sig12 = atan2(max(csig1 * ssig2 - ssig1 * csig2, real(0)),
+    sig12 = atan2(max(real(0), csig1 * ssig2 - ssig1 * csig2),
                   csig1 * csig2 + ssig1 * ssig2);
 
     // omg12 = omg2 - omg1, limit to [0, pi]
-    omg12 = atan2(max(comg1 * somg2 - somg1 * comg2, real(0)),
+    omg12 = atan2(max(real(0), comg1 * somg2 - somg1 * comg2),
                   comg1 * comg2 + somg1 * somg2);
     real B312, h0;
     real k2 = Math::sq(calp0) * _ep2;

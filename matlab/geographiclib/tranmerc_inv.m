@@ -13,7 +13,7 @@ function [lat, lon, gam, k] = tranmerc_inv(lat0, lon0, x, y, ellipsoid)
 %   case of lat0 = 0 is treated efficiently provided that lat0 is specified
 %   as a scalar.  projdoc defines the projection and gives the restrictions
 %   on the allowed ranges of the arguments.  The forward projection is
-%   given by tranmerc_fwd.
+%   given by tranmerc_fwd.  The scale on the central meridian is 1.
 %
 %   gam and K give metric properties of the projection at (lat,lon); gam is
 %   the meridian convergence at the point and k is the scale.
@@ -40,13 +40,11 @@ function [lat, lon, gam, k] = tranmerc_inv(lat0, lon0, x, y, ellipsoid)
 %     DEFAULTELLIPSOID.
 
 % Copyright (c) Charles Karney (2012-2015) <charles@karney.com>.
-%
-% This file was distributed with GeographicLib 1.44.
 
   narginchk(4, 5)
   if nargin < 5, ellipsoid = defaultellipsoid; end
   try
-    Z = zeros(size(lat0 + lon0 + x + y));
+    S = size(lat0 + lon0 + x + y);
   catch
     error('lat0, lon0, x, y have incompatible sizes')
   end
@@ -54,6 +52,7 @@ function [lat, lon, gam, k] = tranmerc_inv(lat0, lon0, x, y, ellipsoid)
     error('ellipsoid must be a vector of size 2')
   end
 
+  Z = zeros(prod(S),1);
   maxpow = 6;
 
   a = ellipsoid(1);
@@ -73,12 +72,11 @@ function [lat, lon, gam, k] = tranmerc_inv(lat0, lon0, x, y, ellipsoid)
     [sbet0, cbet0] = norm2((1-f) * sbet0, cbet0);
     y0 = a1 * (atan2(sbet0, cbet0) + ...
                SinCosSeries(true, sbet0, cbet0, C1f(n)));
-    y0 = reshape(y0, size(lat0));
   end
-  y = y + y0;
+  y = y(:) + y0 + Z;
 
   xi = y / a1;
-  eta = x / a1;
+  eta = x(:) / a1 + Z;
   xisign = 1 - 2 * (xi < 0 );
   etasign = 1 - 2 * (eta < 0 );
   xi = xi .* xisign;
@@ -122,7 +120,7 @@ function [lat, lon, gam, k] = tranmerc_inv(lat0, lon0, x, y, ellipsoid)
   lon = atan2dx(s, c);
   sxip = sin(xip);
   tau = tauf(sxip./r, e2);
-  lat = atan2dx(tau, 1);
+  lat = atan2dx(tau, 1 + Z);
   gam = gam + atan2dx(sxip .* tanh(etap), c);
   c = r ~= 0;
   k(c) = k(c) .* sqrt(e2m + e2 ./ (1 + tau.^2)) .* ...
@@ -136,9 +134,12 @@ function [lat, lon, gam, k] = tranmerc_inv(lat0, lon0, x, y, ellipsoid)
   lat = lat .* xisign;
   lon(backside) = 180 - lon(backside);
   lon = lon .* etasign;
-  lon = AngNormalize(lon + AngNormalize(lon0));
+  lon = AngNormalize(lon + AngNormalize(lon0(:)));
   gam(backside) = 180 - gam(backside);
   gam = AngNormalize(gam .* xisign .* etasign);
+
+  lat = reshape(lat, S); lon = reshape(lon, S);
+  gam = reshape(gam, S); k = reshape(k, S);
 end
 
 function bet = betf(n)
