@@ -2,6 +2,10 @@
 
 This documentation applies to version 1.46.
 
+The documentation for other versions is available
+at <tt>http://geographiclib.sourceforge.net/m.nn/js</tt> for versions
+numbers <tt>m.nn</tt> &ge; 1.45.
+
 ### Installation
 
 This library is a JavaScript implementation of the geodesic routines
@@ -17,6 +21,12 @@ $ npm install geographiclib
 $ node
 > var GeographicLib = require("geographiclib");
 ```
+The npm package includes a test suite.  Run this by
+```bash
+$ cd node_modules/geograliblib
+$ npm test
+```
+
 Alternatively, you can use it in client-side JavaScript, by including in
 your HTML page
 ```html
@@ -53,6 +63,46 @@ Two examples of this library in use are
 * {@tutorial 1-geodesics}
 * {@tutorial 2-interface}
 * {@tutorial 3-examples}
+
+### Implementations in various languages
+* {@link http://sourceforge.net/p/geographiclib/code/ci/release/tree/
+    git repository}
+* C++ (complete library):
+  {@link ../index.html
+    documentation},
+  {@link https://sourceforge.net/projects/geographiclib/files/distrib
+    download};
+* C (geodesic routines):
+  {@link ../C/index.html
+    documentation}, also included with recent versions of
+  {@link https://github.com/OSGeo/proj.4/wiki
+    proj.4};
+* Fortran (geodesic routines):
+  {@link ../Fortran/index.html
+    documentation};
+* Java (geodesic routines):
+  {@link http://repo1.maven.org/maven2/net/sf/geographiclib/GeographicLib-Java/
+    Maven Central package},
+  {@link ../java/index.html
+    documentation};
+* JavaScript (geodesic routines):
+  {@link https://www.npmjs.com/package/geographiclib
+    npm package},
+  {@link ../js/index.html
+    documentation};
+* Python (geodesic routines):
+  {@link http://pypi.python.org/pypi/geographiclib
+    PyPI package},
+  {@link ../python/index.html
+    documentation};
+* Matlab/Octave (geodesic and some other routines):
+  {@link http://www.mathworks.com/matlabcentral/fileexchange/50605
+    Matlab Central package},
+  {@link http://www.mathworks.com/matlabcentral/fileexchange/50605/content/Contents.m
+    documentation};
+* C# (.NET wrapper for complete C++ library):
+  {@link ../NET/index.html
+    documentation}.
 
 ### Authors
 
