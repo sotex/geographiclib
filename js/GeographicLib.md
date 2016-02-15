@@ -6,6 +6,9 @@ The documentation for other versions is available
 at <tt>http://geographiclib.sourceforge.net/m.nn/js</tt> for versions
 numbers <tt>m.nn</tt> &ge; 1.45.
 
+Licensed under the MIT/X11 License; see
+[LICENSE.txt](http://geographiclib.sourceforge.net/html/LICENSE.txt).
+
 ### Installation
 
 This library is a JavaScript implementation of the geodesic routines
@@ -68,32 +71,32 @@ Two examples of this library in use are
 * {@link http://sourceforge.net/p/geographiclib/code/ci/release/tree/
     git repository}
 * C++ (complete library):
-  {@link ../index.html
+  {@link http://geographiclib.sourceforge.net/html/index.html
     documentation},
   {@link https://sourceforge.net/projects/geographiclib/files/distrib
     download};
 * C (geodesic routines):
-  {@link ../C/index.html
+  {@link http://geographiclib.sourceforge.net/html/C/index.html
     documentation}, also included with recent versions of
   {@link https://github.com/OSGeo/proj.4/wiki
     proj.4};
 * Fortran (geodesic routines):
-  {@link ../Fortran/index.html
+  {@link http://geographiclib.sourceforge.net/html/Fortran/index.html
     documentation};
 * Java (geodesic routines):
   {@link http://repo1.maven.org/maven2/net/sf/geographiclib/GeographicLib-Java/
     Maven Central package},
-  {@link ../java/index.html
+  {@link http://geographiclib.sourceforge.net/html/java/index.html
     documentation};
 * JavaScript (geodesic routines):
   {@link https://www.npmjs.com/package/geographiclib
     npm package},
-  {@link ../js/index.html
+  {@link http://geographiclib.sourceforge.net/html/js/index.html
     documentation};
 * Python (geodesic routines):
   {@link http://pypi.python.org/pypi/geographiclib
     PyPI package},
-  {@link ../python/index.html
+  {@link http://geographiclib.sourceforge.net/html/python/index.html
     documentation};
 * Matlab/Octave (geodesic and some other routines):
   {@link http://www.mathworks.com/matlabcentral/fileexchange/50605
@@ -101,13 +104,21 @@ Two examples of this library in use are
   {@link http://www.mathworks.com/matlabcentral/fileexchange/50605/content/Contents.m
     documentation};
 * C# (.NET wrapper for complete C++ library):
-  {@link ../NET/index.html
+  {@link http://geographiclib.sourceforge.net/html/NET/index.html
     documentation}.
+
+### Change log
+
+* Version 1.46 (released 2016-02-15)
+  * Fix bugs in PolygonArea.TestEdge (problem found by threepointone).
+  * Add Geodesic.DirectLine, Geodesic.ArcDirectLine,
+    Geodesic.GenDirectLine, Geodesic.InverseLine,
+    GeodesicLine.SetDistance, GeodesicLine.SetArc,
+    GeodesicLine.GenSetDistance, GeodesicLine.s13, GeodesicLine.a13.
+  * More accurate inverse solution when longitude difference is close to
+    180&deg;.
 
 ### Authors
 
 * algorithms + js code: Charles Karney (charles@karney.com)
 * node.js port: Yurij Mikhalevich (0@39.yt)
-
-Licensed under the MIT/X11 License; see
-[LICENSE.txt](http://geographiclib.sourceforge.net/html/LICENSE.txt).

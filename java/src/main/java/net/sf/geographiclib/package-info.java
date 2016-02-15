@@ -262,10 +262,20 @@
  * <ul>
  * <li>
  *   <a href="http://geographiclib.sourceforge.net/1.46/java">Version 1.46</a>
- *   (released 2016-mm-dd)
+ *   (released 2016-02-15)
  * <ul>
  * <li>
- *   More accurate inverse solution when longitude difference is close to 180.
+ *   Fix bug where the wrong longitude was being returned with direct geodesic
+ *   calculation with a negative distance when starting point was at a pole
+ *   (this bug was introduced in version 1.44).
+ * <li>
+ *   Add Geodesic.DirectLine, Geodesic.ArcDirectLine, Geodesic.GenDirectLine,
+ *   Geodesic.InverseLine, GeodesicLine.SetDistance, GeodesicLine.SetArc,
+ *   GeodesicLine.GenSetDistance, GeodesicLine.Distance, GeodesicLine.Arc,
+ *   GeodesicLine.GenDistance.
+ * <li>
+ *   More accurate inverse solution when longitude difference is close to
+ *   180&deg;.
  * <li>
  *   GeoMath.AngDiff now returns a Pair.
  * </ul>

@@ -37,7 +37,6 @@ set -e
 #   NEWS
 #   configure.ac (AC_INIT, GEOGRAPHICLIB_VERSION_* LT_*)
 #   tests/test-distribution.sh
-#   src/GeographicLib.pro lib version
 #   doc/GeographicLib.dox.in
 #   doc/NETGeographicLib.dox
 
@@ -46,7 +45,7 @@ set -e
 # python
 #   python/setup.py
 #   python/geographiclib/__init__.py
-#   doc/install.py
+#   doc/index.py
 #   README.rst
 # use: cd python; pychecker geographiclib/*.py
 
@@ -167,9 +166,7 @@ for ver in 10 11 12 14; do
 	pkg=vc$ver-$arch
 	gen="Visual Studio $ver"
 	installer=
-	if test "$ver" -eq 12; then
-	    installer=GeographicLib-$VERSION-$arch.exe
-	fi
+	test "$ver" = 12 && installer=y
 	mkdir $WINDOWSBUILD/GeographicLib-$VERSION/BUILD-$pkg
 	(
 	    echo "#! /bin/sh -exv"
@@ -189,7 +186,7 @@ for ver in 10 11 12 14; do
 	    echo cmake --build . --config Release --target INSTALL
 	    echo cmake --build . --config Release --target PACKAGE
 	    test "$installer" &&
-		echo cp "$installer" $WINDEVELSOURCE/ || true
+		echo cp GeographicLib-$VERSION-*.exe $WINDEVELSOURCE/ || true
 	) > $WINDOWSBUILD/GeographicLib-$VERSION/BUILD-$pkg/build
 	chmod +x $WINDOWSBUILD/GeographicLib-$VERSION/BUILD-$pkg/build
     done
@@ -349,9 +346,6 @@ libversion=`find $TEMP/instc/lib -type f \
 sed 's/libGeographic\.so\.//'`
 test -f $TEMP/instb/lib/libGeographic.so.$libversion ||
 echo autoconf/cmake library so mismatch
-grep "^ *VERSION *= *$libversion *\$" \
-    $TEMP/gitb/geographiclib/src/GeographicLib.pro > /dev/null ||
-echo autoconf/Qt library so mismatch
 
 CONFIG_FILE=$TEMP/gitr/geographiclib/configure
 CONFIG_MAJOR=`grep ^GEOGRAPHICLIB_VERSION_MAJOR= $CONFIG_FILE | cut -f2 -d=`
@@ -436,6 +430,8 @@ mvn clean deploy -P release
 npm publish $TEMP/gita/geographiclib/BUILD/js/geographiclib
 make -C $DEVELSOURCE -f makefile-admin distrib-js
 make -C $DEVELSOURCE -f makefile-admin install-js
+# also update devel branch of node-geographiclib from
+$TEMP/gita/geographiclib/BUILD/js/geographiclib
 
 # matlab toolbox
 chmod 644 $DEVELSOURCE/geographiclib_toolbox_$VERSION.*
