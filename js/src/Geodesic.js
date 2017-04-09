@@ -10,11 +10,11 @@
  *    Charles F. F. Karney,
  *    Algorithms for geodesics, J. Geodesy 87, 43-55 (2013);
  *    https://doi.org/10.1007/s00190-012-0578-z
- *    Addenda: http://geographiclib.sourceforge.net/geod-addenda.html
+ *    Addenda: https://geographiclib.sourceforge.io/geod-addenda.html
  *
  * Copyright (c) Charles Karney (2011-2017) <charles@karney.com> and licensed
  * under the MIT/X11 License.  For more information, see
- * http://geographiclib.sourceforge.net/
+ * https://geographiclib.sourceforge.io/
  */
 
 // Load AFTER Math.js
@@ -1049,7 +1049,7 @@ GeographicLib.PolygonArea = {};
               continue;
             }
           }
-          // Either dv was not postive or updated value was outside legal
+          // Either dv was not positive or updated value was outside legal
           // range.  Use the midpoint of the bracket as the next estimate.
           // This mechanism is not needed for the WGS84 ellipsoid, but it does
           // catch problems with more eccentric ellipsoids.  Its efficacy is
