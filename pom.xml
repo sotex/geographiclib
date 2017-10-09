@@ -17,6 +17,10 @@
   <packaging>majic-cmake</packaging>
   <name>GeographicLib</name>
 
+  <prerequisites>
+    <maven>3.0.0</maven>
+  </prerequisites>
+
   <build>
     <plugins>
       <plugin>
